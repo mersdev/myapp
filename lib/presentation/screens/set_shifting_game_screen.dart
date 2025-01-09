@@ -12,6 +12,8 @@ class SetShiftingGameScreen extends StatelessWidget {
   void _showFeedbackDialog(BuildContext context, bool isCorrect) {
     if (!context.mounted) return;
     
+    final provider = Provider.of<SetShiftingGameProvider>(context, listen: false);
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -40,6 +42,13 @@ class SetShiftingGameScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              Text(
+                'Question ${provider.questionNumber} of $maxQuestions',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
         );
@@ -50,7 +59,6 @@ class SetShiftingGameScreen extends StatelessWidget {
       if (context.mounted) {
         Navigator.of(context).pop();
         
-        final provider = Provider.of<SetShiftingGameProvider>(context, listen: false);
         if (provider.isGameOver) {
           Navigator.pushReplacement(
             context,
@@ -203,15 +211,10 @@ class SetShiftingGameScreen extends StatelessWidget {
       children: provider.currentObjects.map((obj) {
         return GestureDetector(
           onTap: () async {
+            if (provider.isGameOver) return;
             final isCorrect = await provider.handleObjectSelection(obj);
             if (context.mounted) {
               _showFeedbackDialog(context, isCorrect);
-            
-              if (!provider.isGameOver) {
-                provider.nextQuestion();
-              } else {
-                provider.showGameOverDialog(context);
-              }
             }
           },
           child: ShapeWidget(object: obj),

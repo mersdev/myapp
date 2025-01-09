@@ -18,6 +18,10 @@ class SetShiftingGameProvider extends ChangeNotifier {
   int _questionNumber = 0;
   bool _isGameOver = false;
 
+  // Add getters
+  int get questionNumber => _questionNumber;
+  bool get isLastQuestion => _questionNumber == maxQuestions - 1;
+  
   SetShiftingGameProvider() {
     _sortingService = SortingService([
       ColorSortingRule(),
@@ -139,15 +143,52 @@ class SetShiftingGameProvider extends ChangeNotifier {
     return objects;
   }
 
-  void nextQuestion() {
+  Future<bool> handleObjectSelection(SortableObject selectedObject) async {
+    if (_isGameOver) return false;
+    
+    final isCorrect = _sortingService.checkMatch(_targetObject, selectedObject);
+    _sortingService.handleSortingResult(isCorrect);
+    
+    if (isCorrect) {
+      _correctAnswers++;
+      _currentScore += 10;
+    }
+    
     _questionNumber++;
+    
+    // Only set game over when we've completed all questions
     if (_questionNumber >= maxQuestions) {
       _isGameOver = true;
-      return;
+      await _saveGameSession();
     }
-    _startTime = DateTime.now();
+    
+    notifyListeners();
+    return isCorrect;
+  }
+
+  void nextQuestion() {
+    if (_isGameOver) return;
     _generateNewRound();
     notifyListeners();
+  }
+
+  Future<void> _saveGameSession() async {
+    if (_currentSession == null) return;
+    
+    try {
+      await GameService.instance.updateSession(
+        _currentSession!.id,
+        scores: {
+          'color': _correctAnswers,
+          'shape': _correctAnswers,
+          'size': _correctAnswers,
+        },
+        ruleChanges: _ruleChanges,
+        durationSeconds: DateTime.now().difference(_startTime!).inSeconds,
+      );
+    } catch (e) {
+      debugPrint('Error saving game session: $e');
+    }
   }
 
   SortingRule get currentRule => _sortingService.currentRule;
@@ -165,34 +206,6 @@ Duration get gameDuration {
   }
   return DateTime.now().difference(_startTime!);
 }
-
-  Future<bool> handleObjectSelection(SortableObject selectedObject) async {
-    final isCorrect = _sortingService.checkMatch(_targetObject, selectedObject);
-    _sortingService.handleSortingResult(isCorrect);
-    
-    if (_questionNumber >= maxQuestions - 1) {
-      _isGameOver = true;
-    }
-    
-    return isCorrect;
-  }
-
-  Future<void> _saveGameSession({bool isCompleted = false}) async {
-    final startTime = _startTime; // Access the instance variable
-    if (startTime == null) return; // Return if startTime is null
-
-    final endTime = DateTime.now();
-    final durationSeconds = endTime.difference(startTime).inSeconds;
-
-    try {
-      _currentSession ??= await GameService.instance.startSession();
-      await GameService.instance.updateSession(_currentSession!.id, scores: {_sortingService.currentRule.runtimeType.toString(): _currentScore},
-          ruleChanges: _ruleChanges,
-          durationSeconds: durationSeconds);
-    } catch (e) {
-      debugPrint('Error saving game session: $e');
-    }
-  }
 
   void _changeRule() {
     _sortingService.changeRule();
