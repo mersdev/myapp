@@ -66,7 +66,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
     );
     objects.add(correctObject);
     
-    // Generate two incorrect objects that don't match the target based on current rule
+    // Generate two incorrect objects that don't match based on current rule
     for (var i = 0; i < 2; i++) {
       SortableObject incorrectObject;
       do {
@@ -82,7 +82,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
               : _getRandomSize(),
           imageAsset: '',
         );
-      } while (_sortingService.checkMatch(incorrectObject, targetObject));
+      } while (currentRule.isMatch(incorrectObject, correctObject));
       objects.add(incorrectObject);
     }
 
@@ -118,9 +118,8 @@ class SetShiftingGameProvider extends ChangeNotifier {
   }
 
   SortableObject _generateTargetObject() {
-    // Pick a random object from current objects and create a matching target
-    // based on the current rule
-    final baseObject = currentObjects[_random.nextInt(currentObjects.length)];
+    // Use the first object as base to ensure we have a matching pair
+    final baseObject = currentObjects[0];
     
     return SortableObject(
       color: currentRule is ColorSortingRule
@@ -132,7 +131,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
       size: currentRule is SizeSortingRule
           ? baseObject.size
           : _getRandomSize(),
-      imageAsset: '', // Not used anymore
+      imageAsset: '',
     );
   }
 

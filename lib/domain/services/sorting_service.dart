@@ -5,7 +5,6 @@ import '../rules/sorting_rule.dart';
 class SortingService {
   late SortingRule _currentRule;
   final List<SortingRule> _availableRules;
-  final Random _random = Random();
   int _currentScore = 0;
   int _consecutiveCorrect = 0;
   static const int _consecutiveCorrectToChangeRule = 3;
