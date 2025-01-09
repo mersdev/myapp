@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../domain/models/sortable_object.dart';
 import '../providers/set_shifting_game_provider.dart';
 import '../widgets/shape_widget.dart';
+import '../widgets/app_drawer.dart';
 
 class SetShiftingGameScreen extends StatelessWidget {
   const SetShiftingGameScreen({super.key});
@@ -61,6 +62,7 @@ class SetShiftingGameScreen extends StatelessWidget {
     return Consumer<SetShiftingGameProvider>(
       builder: (context, gameProvider, child) {
         return Scaffold(
+          drawer: const AppDrawer(),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(

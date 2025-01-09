@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/sortable_object.dart';
 import '../../domain/rules/sorting_rule.dart';
 import '../../domain/services/sorting_service.dart';
+import '../../services/game_service.dart';
+import '../../models/game_session.dart';
 
 class SetShiftingGameProvider extends ChangeNotifier {
   late final SortingService _sortingService;
@@ -10,6 +12,18 @@ class SetShiftingGameProvider extends ChangeNotifier {
   late SortableObject targetObject;
   bool isAnimating = false;
   final Random _random = Random();
+  
+  // Game session tracking
+  GameSession? _currentSession;
+  DateTime? _startTime;
+  int _questionCount = 0;
+  final Map<String, int> _scores = {
+    'color': 0,
+    'shape': 0,
+    'size': 0,
+  };
+
+  static const int maxQuestions = 10;
 
   SetShiftingGameProvider() {
     _sortingService = SortingService([
@@ -17,17 +31,32 @@ class SetShiftingGameProvider extends ChangeNotifier {
       ShapeSortingRule(),
       SizeSortingRule(),
     ]);
-    initializeGame();
+    _initializeGame();
   }
 
   SortingRule get currentRule => _sortingService.currentRule;
-  int get currentScore => _sortingService.currentScore;
+  int get currentScore => _scores.values.fold(0, (sum, score) => sum + score);
+  int get questionCount => _questionCount;
+  bool get isGameComplete => _questionCount >= maxQuestions;
+  Duration get elapsedTime => _startTime != null ? DateTime.now().difference(_startTime!) : Duration.zero;
+
+  Future<void> _initializeGame() async {
+    try {
+      _currentSession = await GameService.instance.startSession();
+      _startTime = DateTime.now();
+      _questionCount = 0;
+      _scores.updateAll((key, value) => 0);
+      initializeGame();
+    } catch (e) {
+      debugPrint('Failed to start game session: $e');
+      // Initialize game anyway to allow offline play
+      initializeGame();
+    }
+  }
 
   void initializeGame() {
-    // Generate objects and target
     final objects = _generateSortableObjects();
     
-    // Verify we have exactly one correct answer before setting
     final matchingObjects = objects.where((obj) => currentRule.isMatch(obj, targetObject));
     assert(matchingObjects.length == 1, 'Invalid game state: ${matchingObjects.length} matching objects');
     
@@ -153,33 +182,59 @@ class SetShiftingGameProvider extends ChangeNotifier {
   }
 
   Future<bool> handleObjectSelection(SortableObject selectedObject) async {
-    if (isAnimating) return false;
+    if (isAnimating || isGameComplete) return false;
 
     final bool isCorrect = _sortingService.checkMatch(selectedObject, targetObject);
     _sortingService.handleSortingResult(isCorrect);
 
+    if (isCorrect) {
+      // Update score for current rule type
+      final ruleType = currentRule is ColorSortingRule
+          ? 'color'
+          : currentRule is ShapeSortingRule
+              ? 'shape'
+              : 'size';
+      _scores[ruleType] = (_scores[ruleType] ?? 0) + 1;
+    }
+
+    _questionCount++;
     isAnimating = true;
     notifyListeners();
 
     if (isCorrect) {
-      // Generate new objects immediately but don't notify yet
       final newObjects = _generateSortableObjects();
-      
-      // Wait for 2 seconds (matching the feedback animation duration)
       await Future.delayed(const Duration(seconds: 2));
-      
-      // Update the objects and notify
       currentObjects = newObjects;
     }
 
     isAnimating = false;
     notifyListeners();
 
+    // Check if game is complete
+    if (isGameComplete) {
+      await _completeGame();
+    }
+
     return isCorrect;
   }
 
-  void resetGame() {
+  Future<void> _completeGame() async {
+    if (_currentSession == null) return;
+
+    try {
+      await GameService.instance.updateSession(
+        _currentSession!.id,
+        scores: _scores,
+        ruleChanges: _sortingService.currentScore ~/ 10, // Convert total score to rule changes
+        durationSeconds: elapsedTime.inSeconds,
+      );
+    } catch (e) {
+      debugPrint('Failed to update game session: $e');
+    }
+  }
+
+  Future<void> resetGame() async {
     _sortingService.resetGame();
-    initializeGame();
+    await _initializeGame();
   }
 } 
