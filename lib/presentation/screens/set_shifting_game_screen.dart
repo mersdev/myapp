@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/models/sortable_object.dart';
@@ -5,12 +6,18 @@ import '../providers/set_shifting_game_provider.dart';
 import '../widgets/shape_widget.dart';
 import '../widgets/app_drawer.dart';
 
-class SetShiftingGameScreen extends StatelessWidget {
-  const SetShiftingGameScreen({super.key});
+class SetShiftingGameScreen extends StatefulWidget {
+  const SetShiftingGameScreen({Key? key}) : super(key: key);
 
-  Future<void> _showFeedbackAnimation(BuildContext context, bool isCorrect) async {
+  @override
+  State<SetShiftingGameScreen> createState() => _SetShiftingGameScreenState();
+}
+
+class _SetShiftingGameScreenState extends State<SetShiftingGameScreen> {
+  Timer? _timer;
+
+  Future<void> _showFeedbackAnimation(bool isCorrect) async {
     showDialog(
-      context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54,
       builder: (context) => TweenAnimationBuilder<double>(
@@ -52,9 +59,40 @@ class SetShiftingGameScreen extends StatelessWidget {
     // Wait for 2 seconds before dismissing the dialog
     await Future.delayed(const Duration(seconds: 2));
     
-    if (context.mounted) {
+    if (mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  void _showGameOverDialog(SetShiftingGameProvider gameProvider) {
+    showDialog(
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Game Over'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Correct Answers: ${gameProvider.correctAnswers} / ${gameProvider.totalQuestions}'),
+            Text('Duration: ${gameProvider.gameDuration.inSeconds} seconds'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              gameProvider.resetGame();
+            },
+            child: const Text('Play Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() { 
+    _timer?.cancel(); // Cancel the timer when the widget is disposed
+    super.dispose(); 
   }
 
   @override
@@ -75,9 +113,47 @@ class SetShiftingGameScreen extends StatelessWidget {
               ),
             ),
             child: SafeArea(
+              child: Stack( // Use Stack to overlay the navbar
+                children: [
+                  _buildGameContent(context, gameProvider),
+                  Positioned( // Position the navbar at the bottom
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: BottomNavigationBar(
+                      items: const [
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.logout),
+                          label: 'Logout',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.bar_chart),
+                          label: 'Stats',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Icon(Icons.settings),
+                          label: 'Other',
+                        ),
+                      ],
+                      onTap: (index) {
+                        // Handle navigation based on the selected index
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGameContent(BuildContext context, SetShiftingGameProvider gameProvider) {
+    return Column(
               child: Column(
                 children: [
-                  Padding(
+                Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,15 +258,23 @@ class SetShiftingGameScreen extends StatelessWidget {
                                 obj,
                                 () async {
                                   final isCorrect = await gameProvider.handleObjectSelection(obj);
-                                  if (context.mounted) {
-                                    await _showFeedbackAnimation(context, isCorrect);
+
+                                  if (mounted) {
+                                    await _showFeedbackAnimation(isCorrect);
+
+                                    if (gameProvider.totalQuestions == 5) {
+                                      _timer?.cancel(); // Stop the timer if the game is over
+                                      _showGameOverDialog(gameProvider);
+                                    } else if (isCorrect && gameProvider.totalQuestions < 5) {
+                                      gameProvider.generateNextQuestion(); 
+                                    }
                                   }
                                 },
                               ))
                           .toList(),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 20), // Add some space before the Reset button
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton.icon(
@@ -213,13 +297,10 @@ class SetShiftingGameScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 80), // Adjust space for the navbar
                 ],
               ),
-            ),
-          ),
-        );
-      },
-    );
+            );
   }
 
   Widget _buildObjectWidget(SortableObject object, VoidCallback? onTap) {

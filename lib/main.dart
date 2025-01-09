@@ -6,6 +6,7 @@ import 'presentation/providers/set_shifting_game_provider.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/email_verification_screen.dart';
 import 'presentation/screens/set_shifting_game_screen.dart';
+import 'presentation/screens/stats/stats_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -60,7 +61,32 @@ class MyApp extends StatelessWidget {
             }
 
             // If authenticated and verified, show game screen
-            return const SetShiftingGameScreen();
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Cognitive Training Games'),
+              ),
+              body: const SetShiftingGameScreen(),
+              bottomNavigationBar: BottomNavigationBar(
+                items: const <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.logout),
+                    label: 'Logout',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.bar_chart),
+                    label: 'Stats',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.more_horiz),
+                    label: 'Other',
+                  ),
+                ],
+                onTap: (index) {
+                  if (index == 0) AuthService.instance.signOut(); // Logout
+                  if (index == 1) Navigator.push(context, MaterialPageRoute(builder: (context) => const StatsScreen())); // Navigate to Stats
+                },
+              ),
+            );
           }
 
           // If not authenticated, show login screen
