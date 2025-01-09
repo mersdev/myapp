@@ -10,10 +10,12 @@ class SetShiftingGameScreen extends StatelessWidget {
   const SetShiftingGameScreen({super.key});
 
   void _showFeedbackDialog(BuildContext context, bool isCorrect) {
+    if (!context.mounted) return;
+    
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: isCorrect 
             ? Colors.green.withOpacity(0.95) 
@@ -44,54 +46,27 @@ class SetShiftingGameScreen extends StatelessWidget {
       },
     );
 
-    // Wait for 2 seconds before dismissing the dialog
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
     });
   }
 
-  void _showRuleChangeDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Game Over'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Correct Answers: ${gameProvider.correctAnswers} / ${gameProvider.totalQuestions}'),
-              Text('Duration: ${gameProvider.gameDuration.inSeconds} seconds'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                gameProvider.resetGame();
-              },
-              child: const Text('Play Again'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildGameContent(BuildContext context, SetShiftingGameProvider gameProvider) {
+  Widget _buildGameContent(BuildContext context, SetShiftingGameProvider provider) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildScoreSection(gameProvider),
+        _buildScoreSection(context, provider),
         const SizedBox(height: 20),
-        _buildTargetObject(gameProvider),
+        _buildTargetObject(context, provider),
         const SizedBox(height: 40),
-        _buildSelectableObjects(context, gameProvider),
+        _buildSelectableObjects(context, provider),
       ],
     );
   }
 
-  Widget _buildScoreSection(SetShiftingGameProvider gameProvider) {
+  Widget _buildScoreSection(BuildContext context, SetShiftingGameProvider provider) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -130,7 +105,7 @@ class SetShiftingGameScreen extends StatelessWidget {
                 const Icon(Icons.stars, color: Colors.amber),
                 const SizedBox(width: 8),
                 Text(
-                  'Score: ${gameProvider.currentScore}',
+                  'Score: ${provider.currentScore}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -144,7 +119,7 @@ class SetShiftingGameScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTargetObject(SetShiftingGameProvider gameProvider) {
+  Widget _buildTargetObject(BuildContext context, SetShiftingGameProvider provider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -170,7 +145,7 @@ class SetShiftingGameScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Current Rule: ${gameProvider.currentRule.ruleName}',
+                'Current Rule: ${provider.currentRule.ruleName}',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.blue.shade700,
                   fontWeight: FontWeight.bold,
@@ -186,7 +161,7 @@ class SetShiftingGameScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildObjectWidget(gameProvider.targetObject, null),
+          _buildObjectWidget(provider.targetObject, null),
         ],
       ),
     );
@@ -211,20 +186,22 @@ class SetShiftingGameScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSelectableObjects(BuildContext context, SetShiftingGameProvider gameProvider) {
+  Widget _buildSelectableObjects(BuildContext context, SetShiftingGameProvider provider) {
     return Wrap(
       spacing: 16,
       runSpacing: 16,
-      children: gameProvider.currentObjects.map((obj) {
+      children: provider.currentObjects.map((obj) {
         return GestureDetector(
           onTap: () async {
-            final isCorrect = await gameProvider.handleObjectSelection(obj);
-            _showFeedbackDialog(context, isCorrect);
+            final isCorrect = await provider.handleObjectSelection(obj);
+            if (context.mounted) {
+              _showFeedbackDialog(context, isCorrect);
             
-            if (!gameProvider.isGameOver) {
-              gameProvider.nextQuestion();
-            } else {
-              gameProvider.showGameOverDialog(context);
+              if (!provider.isGameOver) {
+                provider.nextQuestion();
+              } else {
+                provider.showGameOverDialog(context);
+              }
             }
           },
           child: ShapeWidget(object: obj),
@@ -236,7 +213,7 @@ class SetShiftingGameScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<SetShiftingGameProvider>(
-      builder: (context, gameProvider, child) {
+      builder: (context, provider, child) {
         return Scaffold(
           drawer: const AppDrawer(),
           body: Container(
@@ -251,10 +228,10 @@ class SetShiftingGameScreen extends StatelessWidget {
               ),
             ),
             child: SafeArea(
-              child: Stack( // Use Stack to overlay the navbar
+              child: Stack(
                 children: [
-                  _buildGameContent(context, gameProvider),
-                  Positioned( // Position the navbar at the bottom
+                  _buildGameContent(context, provider),
+                  Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
