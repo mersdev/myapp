@@ -6,6 +6,7 @@ import '../../services/game_service.dart';
 import '../../models/game_session.dart';
 
 class SetShiftingGameProvider extends ChangeNotifier {
+  static const int maxQuestions = 5;
   late final SortingService _sortingService;
   GameSession? _currentSession;  
   int _currentScore = 0;  
@@ -14,7 +15,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
   DateTime? _startTime;  
   List<SortableObject> _currentObjects = [];  
   late SortableObject _targetObject;  
-  int _questionNumber = 0;  
+  int _questionNumber = 0;
   bool _isGameOver = false;
 
   SetShiftingGameProvider() {
@@ -140,7 +141,10 @@ class SetShiftingGameProvider extends ChangeNotifier {
 
   void nextQuestion() {
     _questionNumber++;
-    // Reset timer (if needed)
+    if (_questionNumber >= maxQuestions) {
+      _isGameOver = true;
+      return;
+    }
     _startTime = DateTime.now();
     _generateNewRound();
     notifyListeners();
@@ -153,6 +157,7 @@ int get currentScore => _currentScore;
 bool get isGameOver => _isGameOver;
 int get correctAnswers => _correctAnswers;
 int get totalQuestions => _questionNumber;
+int get remainingQuestions => maxQuestions - _questionNumber;
 
 Duration get gameDuration {
   if (_startTime == null) {
@@ -162,32 +167,13 @@ Duration get gameDuration {
 }
 
   Future<bool> handleObjectSelection(SortableObject selectedObject) async {
-    final isCorrect = _sortingService.checkMatch(selectedObject, _targetObject);
-    _questionNumber++;
-
-    if (isCorrect) {
-      _correctAnswers++;
-      _currentScore++;
-    }
-
-    // Change rule every 3 correct answers
-    if (_correctAnswers % 3 == 0 && _correctAnswers != 0) {
-      _changeRule();
-    }
-
-    _generateNewRound();
-
-    // If we've reached 10 questions, save the game session and reset the
-    // game    
-    if (_questionNumber == 5) {
+    final isCorrect = _sortingService.checkMatch(_targetObject, selectedObject);
+    _sortingService.handleSortingResult(isCorrect);
+    
+    if (_questionNumber >= maxQuestions - 1) {
       _isGameOver = true;
-      await _saveGameSession(isCompleted: true); 
-      // Don't reset the game here, wait for the dialog to be dismissed
     }
-
-
-    notifyListeners();
-
+    
     return isCorrect;
   }
 

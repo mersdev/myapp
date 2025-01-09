@@ -49,6 +49,16 @@ class SetShiftingGameScreen extends StatelessWidget {
     Future.delayed(const Duration(seconds: 2), () {
       if (context.mounted) {
         Navigator.of(context).pop();
+        
+        final provider = Provider.of<SetShiftingGameProvider>(context, listen: false);
+        if (provider.isGameOver) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const StatsScreen()),
+          );
+        } else {
+          provider.nextQuestion();
+        }
       }
     });
   }
