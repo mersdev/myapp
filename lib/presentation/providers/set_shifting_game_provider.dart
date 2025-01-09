@@ -1,67 +1,116 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/sortable_object.dart';
 import '../../domain/rules/sorting_rule.dart';
 import '../../domain/services/sorting_service.dart';
 import '../../services/game_service.dart';
 import '../../models/game_session.dart';
+import '../../domain/rules/color_sorting_rule.dart';
+import '../../domain/rules/shape_sorting_rule.dart';
+import '../../domain/rules/size_sorting_rule.dart';
 
 class SetShiftingGameProvider extends ChangeNotifier {
-  final _sortingService = SortingService();
+  late final SortingService _sortingService;
   GameSession? _currentSession;
-  late SortingRule _currentRule;
-  late SortableObject _targetObject;
-  late List<SortableObject> _currentObjects;
   int _currentScore = 0;
   int _ruleChanges = 0;
   DateTime? _startTime;
+  List<SortableObject> _currentObjects = [];
+  late SortableObject _targetObject;
 
   SetShiftingGameProvider() {
+    _sortingService = SortingService([
+      ColorSortingRule(),
+      ShapeSortingRule(),
+      SizeSortingRule(),
+    ]);
     _initializeGame();
   }
 
   void _initializeGame() {
-    _currentRule = _sortingService.getRandomRule();
-    _targetObject = _sortingService.generateRandomObject();
-    _currentObjects = _sortingService.generateMatchingObjects(
-      _targetObject,
-      _currentRule,
-      count: 3,
-    );
+    _generateNewRound();
     _currentScore = 0;
     _ruleChanges = 0;
     _startTime = DateTime.now();
     notifyListeners();
   }
 
-  SortingRule get currentRule => _currentRule;
+  void _generateNewRound() {
+    _targetObject = _generateRandomObject();
+    _currentObjects = _generateObjects();
+  }
+
+  SortableObject _generateRandomObject() {
+    return SortableObject(
+      color: _getRandomValue(['red', 'blue', 'yellow']),
+      shape: _getRandomValue(['circle', 'square', 'triangle']),
+      size: _getRandomValue(['small', 'medium', 'large']),
+    );
+  }
+
+  String _getRandomValue(List<String> values) {
+    return values[DateTime.now().microsecondsSinceEpoch % values.length];
+  }
+
+  List<SortableObject> _generateObjects() {
+    final objects = <SortableObject>[];
+    
+    // Add one matching object
+    objects.add(_generateMatchingObject(_targetObject));
+    
+    // Add two non-matching objects
+    while (objects.length < 3) {
+      final obj = _generateRandomObject();
+      if (!_sortingService.checkMatch(obj, _targetObject)) {
+        objects.add(obj);
+      }
+    }
+    
+    objects.shuffle();
+    return objects;
+  }
+
+  SortableObject _generateMatchingObject(SortableObject target) {
+    final rule = _sortingService.currentRule;
+    if (rule is ColorSortingRule) {
+      return SortableObject(
+        color: target.color,
+        shape: _getRandomValue(['circle', 'square', 'triangle']),
+        size: _getRandomValue(['small', 'medium', 'large']),
+      );
+    } else if (rule is ShapeSortingRule) {
+      return SortableObject(
+        color: _getRandomValue(['red', 'blue', 'yellow']),
+        shape: target.shape,
+        size: _getRandomValue(['small', 'medium', 'large']),
+      );
+    } else {
+      return SortableObject(
+        color: _getRandomValue(['red', 'blue', 'yellow']),
+        shape: _getRandomValue(['circle', 'square', 'triangle']),
+        size: target.size,
+      );
+    }
+  }
+
+  SortingRule get currentRule => _sortingService.currentRule;
   SortableObject get targetObject => _targetObject;
   List<SortableObject> get currentObjects => _currentObjects;
   int get currentScore => _currentScore;
 
   Future<bool> handleObjectSelection(SortableObject selectedObject) async {
-    final isCorrect = _sortingService.checkMatch(
-      selectedObject,
-      _targetObject,
-      _currentRule,
-    );
+    final isCorrect = _sortingService.checkMatch(selectedObject, _targetObject);
+    _sortingService.handleSortingResult(isCorrect);
 
     if (isCorrect) {
       _currentScore++;
       
       // Change rule every 3 correct answers
       if (_currentScore % 3 == 0) {
-        _currentRule = _sortingService.getRandomRule();
+        _sortingService.changeRule();
         _ruleChanges++;
       }
 
-      // Generate new objects for the next round
-      _targetObject = _sortingService.generateRandomObject();
-      _currentObjects = _sortingService.generateMatchingObjects(
-        _targetObject,
-        _currentRule,
-        count: 3,
-      );
+      _generateNewRound();
 
       // If we've reached 10 questions, save the game session
       if (_currentScore >= 10) {
@@ -81,9 +130,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
     final durationSeconds = endTime.difference(_startTime!).inSeconds;
 
     try {
-      if (_currentSession == null) {
-        _currentSession = await GameService.instance.startSession();
-      }
+      _currentSession ??= await GameService.instance.startSession();
 
       await GameService.instance.updateSession(
         _currentSession!.id,
@@ -101,6 +148,7 @@ class SetShiftingGameProvider extends ChangeNotifier {
   }
 
   void resetGame() {
+    _sortingService.resetGame();
     _initializeGame();
   }
 } 
