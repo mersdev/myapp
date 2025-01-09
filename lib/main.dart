@@ -55,7 +55,7 @@ class MyApp extends StatelessWidget {
             final user = AuthService.instance.currentUser;
             
             // If email is not verified, show verification screen
-            if (user != null && !user.emailConfirmed) {
+            if (user != null && !user.emailVerified) {
               return const EmailVerificationScreen();
             }
 

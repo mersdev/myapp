@@ -302,7 +302,9 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
               child: Text('${index + 1}'),
             ),
             title: Text(entry['user_email'] as String),
-            subtitle: Text('Games: ${entry['total_games']} | Avg: ${entry['average_score'].toStringAsFixed(1)}'),
+            subtitle: Text(
+              'Games: ${entry['total_games']} | Avg: ${entry['average_score'].toStringAsFixed(1)}',
+            ),
             trailing: Text(
               '${score['total']}',
               style: const TextStyle(
