@@ -80,13 +80,17 @@ class SetShiftingGameScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Set Shifting Game',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: Colors.blue.shade900,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            'Set Shifting Game',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.blue.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -104,13 +108,14 @@ class SetShiftingGameScreen extends StatelessWidget {
                             ],
                           ),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.stars, color: Colors.amber),
                               const SizedBox(width: 8),
                               Text(
                                 'Score: ${gameProvider.currentScore}',
                                 style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

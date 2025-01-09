@@ -80,13 +80,13 @@ class ShapePainter extends CustomPainter {
 
     switch (size) {
       case SortableObjectSize.small:
-        return minDimension * 0.3;
+        return minDimension * 0.2;
       case SortableObjectSize.medium:
-        return minDimension * 0.4;
+        return minDimension * 0.3;
       case SortableObjectSize.large:
-        return minDimension * 0.5;
-      default:
         return minDimension * 0.4;
+      default:
+        return minDimension * 0.3;
     }
   }
 

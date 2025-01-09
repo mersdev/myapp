@@ -24,8 +24,14 @@ class SetShiftingGameProvider extends ChangeNotifier {
   int get currentScore => _sortingService.currentScore;
 
   void initializeGame() {
-    currentObjects = _generateSortableObjects();
-    targetObject = _generateTargetObject();
+    // Generate objects and target
+    final objects = _generateSortableObjects();
+    
+    // Verify we have exactly one correct answer before setting
+    final matchingObjects = objects.where((obj) => currentRule.isMatch(obj, targetObject));
+    assert(matchingObjects.length == 1, 'Invalid game state: ${matchingObjects.length} matching objects');
+    
+    currentObjects = objects;
     notifyListeners();
   }
 
@@ -58,33 +64,62 @@ class SetShiftingGameProvider extends ChangeNotifier {
 
   List<SortableObject> _generateSortableObjects() {
     final objects = <SortableObject>[];
+    
+    // Generate the correct object first
     final correctObject = SortableObject(
       color: _getRandomColor(),
       shape: _getRandomShape(),
       size: _getRandomSize(),
       imageAsset: '',
     );
+
+    // Generate the target object that matches the correct object based on current rule
+    targetObject = SortableObject(
+      color: currentRule is ColorSortingRule
+          ? correctObject.color
+          : _getRandomColor(),
+      shape: currentRule is ShapeSortingRule
+          ? correctObject.shape
+          : _getRandomShape(),
+      size: currentRule is SizeSortingRule
+          ? correctObject.size
+          : _getRandomSize(),
+      imageAsset: '',
+    );
+
+    // Verify that the correct object actually matches the target
+    assert(currentRule.isMatch(correctObject, targetObject), 
+      'Generated correct object does not match target based on current rule');
+    
     objects.add(correctObject);
     
-    // Generate two incorrect objects that don't match based on current rule
-    for (var i = 0; i < 2; i++) {
-      SortableObject incorrectObject;
-      do {
-        incorrectObject = SortableObject(
-          color: currentRule is ColorSortingRule
-              ? _getRandomColorExcept(correctObject.color)
-              : _getRandomColor(),
-          shape: currentRule is ShapeSortingRule
-              ? _getRandomShapeExcept(correctObject.shape)
-              : _getRandomShape(),
-          size: currentRule is SizeSortingRule
-              ? _getRandomSizeExcept(correctObject.size)
-              : _getRandomSize(),
-          imageAsset: '',
-        );
-      } while (currentRule.isMatch(incorrectObject, correctObject));
-      objects.add(incorrectObject);
+    // Generate two incorrect objects that don't match the target
+    while (objects.length < 3) {
+      final incorrectObject = SortableObject(
+        color: currentRule is ColorSortingRule
+            ? _getRandomColorExcept(targetObject.color)
+            : _getRandomColor(),
+        shape: currentRule is ShapeSortingRule
+            ? _getRandomShapeExcept(targetObject.shape)
+            : _getRandomShape(),
+        size: currentRule is SizeSortingRule
+            ? _getRandomSizeExcept(targetObject.size)
+            : _getRandomSize(),
+        imageAsset: '',
+      );
+
+      // Double check that this object is actually incorrect
+      if (!currentRule.isMatch(incorrectObject, targetObject)) {
+        objects.add(incorrectObject);
+      }
     }
+
+    // Verify we have exactly 3 objects
+    assert(objects.length == 3, 'Generated incorrect number of objects');
+    
+    // Verify exactly one object matches the target
+    final matchingObjects = objects.where((obj) => currentRule.isMatch(obj, targetObject));
+    assert(matchingObjects.length == 1, 'Found ${matchingObjects.length} matching objects instead of 1');
 
     objects.shuffle(_random);
     return objects;
@@ -115,24 +150,6 @@ class SetShiftingGameProvider extends ChangeNotifier {
       SortableObjectSize.large,
     ]..removeWhere((size) => size == excludeSize);
     return sizes[_random.nextInt(sizes.length)];
-  }
-
-  SortableObject _generateTargetObject() {
-    // Use the first object as base to ensure we have a matching pair
-    final baseObject = currentObjects[0];
-    
-    return SortableObject(
-      color: currentRule is ColorSortingRule
-          ? baseObject.color
-          : _getRandomColor(),
-      shape: currentRule is ShapeSortingRule
-          ? baseObject.shape
-          : _getRandomShape(),
-      size: currentRule is SizeSortingRule
-          ? baseObject.size
-          : _getRandomSize(),
-      imageAsset: '',
-    );
   }
 
   Future<bool> handleObjectSelection(SortableObject selectedObject) async {
