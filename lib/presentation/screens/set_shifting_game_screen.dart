@@ -18,6 +18,7 @@ class _SetShiftingGameScreenState extends State<SetShiftingGameScreen> {
 
   Future<void> _showFeedbackAnimation(bool isCorrect) async {
     showDialog(
+      context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54,
       builder: (context) => TweenAnimationBuilder<double>(

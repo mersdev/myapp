@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/domain/models/sortable_object.dart';
+import '../../domain/models/sortable_object.dart';
 import '../../domain/rules/sorting_rule.dart';
 import '../../domain/services/sorting_service.dart';
 import '../../services/game_service.dart';
