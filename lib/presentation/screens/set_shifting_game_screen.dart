@@ -5,6 +5,7 @@ import '../../domain/models/sortable_object.dart';
 import '../providers/set_shifting_game_provider.dart';
 import '../widgets/shape_widget.dart';
 import '../widgets/app_drawer.dart';
+import '../screens/stats/stats_screen.dart';
 
 class SetShiftingGameScreen extends StatelessWidget {
   const SetShiftingGameScreen({super.key});
@@ -43,7 +44,7 @@ class SetShiftingGameScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                'Question ${provider.questionNumber} of $maxQuestions',
+                'Question ${provider.questionNumber} of ${SetShiftingGameProvider.maxQuestions}',
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
