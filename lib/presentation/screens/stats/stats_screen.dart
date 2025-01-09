@@ -170,8 +170,8 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
       height: 200,
       child: LineChart(
         LineChartData(
-          gridData: FlGridData(show: false),
-          titlesData: FlTitlesData(
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(showTitles: true, reservedSize: 40),
             ),
@@ -192,7 +192,7 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
               isCurved: true,
               color: Colors.blue,
               barWidth: 3,
-              dotData: FlDotData(show: true),
+              dotData: const FlDotData(show: true),
             ),
           ],
         ),
