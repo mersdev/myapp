@@ -8,33 +8,49 @@ class SetShiftingGameScreen extends StatelessWidget {
   const SetShiftingGameScreen({super.key});
 
   Future<void> _showFeedbackAnimation(BuildContext context, bool isCorrect) async {
-    await showDialog(
+    showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: isCorrect ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isCorrect ? Icons.check_circle : Icons.cancel,
-              color: Colors.white,
-              size: 64,
+      barrierColor: Colors.black54,
+      builder: (context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 300),
+        builder: (context, value, child) => Transform.scale(
+          scale: value,
+          child: AlertDialog(
+            backgroundColor: isCorrect 
+              ? Colors.green.withOpacity(0.95) 
+              : Colors.red.withOpacity(0.95),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 16),
-            Text(
-              isCorrect ? 'Correct!' : 'Try Again!',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isCorrect ? Icons.check_circle : Icons.cancel,
+                  color: Colors.white,
+                  size: 64,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isCorrect ? 'Correct!' : 'Try Again!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
-    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Wait for 2 seconds before dismissing the dialog
+    await Future.delayed(const Duration(seconds: 2));
+    
     if (context.mounted) {
       Navigator.of(context).pop();
     }
@@ -45,72 +61,154 @@ class SetShiftingGameScreen extends StatelessWidget {
     return Consumer<SetShiftingGameProvider>(
       builder: (context, gameProvider, child) {
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Set Shifting Game'),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    'Score: ${gameProvider.currentScore}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.shade100,
+                  Colors.blue.shade50,
+                ],
               ),
-            ],
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Current Rule: ${gameProvider.currentRule.ruleName}',
-                    style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Set Shifting Game',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Colors.blue.shade900,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.stars, color: Colors.amber),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Score: ${gameProvider.currentScore}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // Target object
-                Card(
-                  elevation: 8,
-                  margin: const EdgeInsets.all(16),
-                  child: Padding(
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: Column(
                       children: [
-                        const Text('Match with:'),
-                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.rule,
+                              color: Colors.blue.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Current Rule: ${gameProvider.currentRule.ruleName}',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Match with:',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         _buildObjectWidget(gameProvider.targetObject, null),
                       ],
                     ),
                   ),
-                ),
-                const Spacer(),
-                // Selectable objects
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: gameProvider.currentObjects
-                        .map((obj) => _buildObjectWidget(
-                              obj,
-                              () async {
-                                final isCorrect = await gameProvider.handleObjectSelection(obj);
-                                if (context.mounted) {
-                                  await _showFeedbackAnimation(context, isCorrect);
-                                }
-                              },
-                            ))
-                        .toList(),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: gameProvider.currentObjects
+                          .map((obj) => _buildSelectableObjectWidget(
+                                obj,
+                                () async {
+                                  final isCorrect = await gameProvider.handleObjectSelection(obj);
+                                  if (context.mounted) {
+                                    await _showFeedbackAnimation(context, isCorrect);
+                                  }
+                                },
+                              ))
+                          .toList(),
+                    ),
                   ),
-                ),
-                const Spacer(),
-              ],
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: gameProvider.resetGame,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text(
+                        'Reset Game',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: gameProvider.resetGame,
-            child: const Icon(Icons.refresh),
           ),
         );
       },
@@ -118,15 +216,58 @@ class SetShiftingGameScreen extends StatelessWidget {
   }
 
   Widget _buildObjectWidget(SortableObject object, VoidCallback? onTap) {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ShapeWidget(object: object),
+    );
+  }
+
+  Widget _buildSelectableObjectWidget(SortableObject object, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Card(
-        elevation: 4,
-        child: Container(
-          width: 80,
-          height: 80,
-          padding: const EdgeInsets.all(8),
-          child: ShapeWidget(object: object),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 1.0, end: 1.0),
+        duration: const Duration(milliseconds: 200),
+        builder: (context, scale, child) => Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(15),
+                onTap: onTap,
+                child: ShapeWidget(
+                  object: object,
+                  size: 80,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

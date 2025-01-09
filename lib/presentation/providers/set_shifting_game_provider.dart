@@ -58,38 +58,63 @@ class SetShiftingGameProvider extends ChangeNotifier {
 
   List<SortableObject> _generateSortableObjects() {
     final objects = <SortableObject>[];
+    final correctObject = SortableObject(
+      color: _getRandomColor(),
+      shape: _getRandomShape(),
+      size: _getRandomSize(),
+      imageAsset: '',
+    );
+    objects.add(correctObject);
     
-    // Generate two random objects
+    // Generate two incorrect objects that don't match the target based on current rule
     for (var i = 0; i < 2; i++) {
-      objects.add(
-        SortableObject(
-          color: _getRandomColor(),
-          shape: _getRandomShape(),
-          size: _getRandomSize(),
-          imageAsset: '', // Not used anymore
-        ),
-      );
+      SortableObject incorrectObject;
+      do {
+        incorrectObject = SortableObject(
+          color: currentRule is ColorSortingRule
+              ? _getRandomColorExcept(correctObject.color)
+              : _getRandomColor(),
+          shape: currentRule is ShapeSortingRule
+              ? _getRandomShapeExcept(correctObject.shape)
+              : _getRandomShape(),
+          size: currentRule is SizeSortingRule
+              ? _getRandomSizeExcept(correctObject.size)
+              : _getRandomSize(),
+          imageAsset: '',
+        );
+      } while (_sortingService.checkMatch(incorrectObject, targetObject));
+      objects.add(incorrectObject);
     }
 
-    // Generate a third object that matches one of the previous objects
-    // based on the current rule
-    final baseObject = objects[0];
-    final matchingObject = SortableObject(
-      color: currentRule is ColorSortingRule
-          ? baseObject.color
-          : _getRandomColor(),
-      shape: currentRule is ShapeSortingRule
-          ? baseObject.shape
-          : _getRandomShape(),
-      size: currentRule is SizeSortingRule
-          ? baseObject.size
-          : _getRandomSize(),
-      imageAsset: '', // Not used anymore
-    );
-
-    objects.add(matchingObject);
     objects.shuffle(_random);
     return objects;
+  }
+
+  String _getRandomColorExcept(String excludeColor) {
+    final colors = [
+      SortableObjectColor.red,
+      SortableObjectColor.blue,
+      SortableObjectColor.yellow,
+    ]..removeWhere((color) => color == excludeColor);
+    return colors[_random.nextInt(colors.length)];
+  }
+
+  String _getRandomShapeExcept(String excludeShape) {
+    final shapes = [
+      SortableObjectShape.circle,
+      SortableObjectShape.square,
+      SortableObjectShape.triangle,
+    ]..removeWhere((shape) => shape == excludeShape);
+    return shapes[_random.nextInt(shapes.length)];
+  }
+
+  String _getRandomSizeExcept(String excludeSize) {
+    final sizes = [
+      SortableObjectSize.small,
+      SortableObjectSize.medium,
+      SortableObjectSize.large,
+    ]..removeWhere((size) => size == excludeSize);
+    return sizes[_random.nextInt(sizes.length)];
   }
 
   SortableObject _generateTargetObject() {
@@ -121,9 +146,16 @@ class SetShiftingGameProvider extends ChangeNotifier {
     notifyListeners();
 
     if (isCorrect) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      currentObjects = _generateSortableObjects();
-      targetObject = _generateTargetObject();
+      // Generate new objects immediately but don't notify yet
+      final newObjects = _generateSortableObjects();
+      final newTarget = _generateTargetObject();
+      
+      // Wait for 2 seconds (matching the feedback animation duration)
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Update the objects and notify
+      currentObjects = newObjects;
+      targetObject = newTarget;
     }
 
     isAnimating = false;
