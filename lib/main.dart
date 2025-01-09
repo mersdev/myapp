@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'presentation/providers/set_shifting_game_provider.dart';
 import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/email_verification_screen.dart';
 import 'presentation/screens/set_shifting_game_screen.dart';
 import 'services/auth_service.dart';
 
@@ -18,7 +19,12 @@ void main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SetShiftingGameProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -35,12 +41,29 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<AuthState>(
         stream: AuthService.instance.authStateChanges,
         builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data?.session != null) {
-            return ChangeNotifierProvider(
-              create: (_) => SetShiftingGameProvider(),
-              child: const SetShiftingGameScreen(),
+          // Show loading indicator while checking auth state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
             );
           }
+
+          // Check if user is authenticated and email is verified
+          if (snapshot.hasData && snapshot.data?.session != null) {
+            final user = AuthService.instance.currentUser;
+            
+            // If email is not verified, show verification screen
+            if (user != null && !user.emailConfirmed) {
+              return const EmailVerificationScreen();
+            }
+
+            // If authenticated and verified, show game screen
+            return const SetShiftingGameScreen();
+          }
+
+          // If not authenticated, show login screen
           return const LoginScreen();
         },
       ),
