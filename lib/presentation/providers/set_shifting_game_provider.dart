@@ -164,14 +164,12 @@ class SetShiftingGameProvider extends ChangeNotifier {
     if (isCorrect) {
       // Generate new objects immediately but don't notify yet
       final newObjects = _generateSortableObjects();
-      final newTarget = _generateTargetObject();
       
       // Wait for 2 seconds (matching the feedback animation duration)
       await Future.delayed(const Duration(seconds: 2));
       
       // Update the objects and notify
       currentObjects = newObjects;
-      targetObject = newTarget;
     }
 
     isAnimating = false;

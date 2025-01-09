@@ -8,8 +8,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/presentation/screens/set_shifting_game_screen.dart';
-import 'package:myapp/presentation/providers/set_shifting_game_provider.dart';
+import '../lib/domain/models/sortable_object.dart';
+import '../lib/domain/rules/sorting_rule.dart';
+import '../lib/domain/services/sorting_service.dart';
+import '../lib/presentation/screens/set_shifting_game_screen.dart';
+import '../lib/presentation/providers/set_shifting_game_provider.dart';
+import '../lib/presentation/widgets/shape_widget.dart';
 
 void main() {
   testWidgets('SetShiftingGameScreen UI test', (WidgetTester tester) async {
@@ -29,7 +33,7 @@ void main() {
     // Verify that the score is displayed
     expect(find.text('Score: 0'), findsOneWidget);
     
-    // Verify that there are three selectable objects
-    expect(find.byType(ShapeWidget), findsNWidgets(4)); // 3 choices + 1 target
+    // Verify that there are three selectable objects plus one target
+    expect(find.byType(ShapeWidget), findsNWidgets(4));
   });
 }
